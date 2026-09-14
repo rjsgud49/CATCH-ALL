@@ -1,0 +1,35 @@
+{
+  "name": "catch-all",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "server\\.venv\\Scripts\\python.exe -m uvicorn main:app --app-dir server --host 127.0.0.1 --port 8787",
+    "dev:all": "concurrently -k -n server,web -c teal,cyan \"npm:dev:server\" \"npm:dev\"",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "server:install": "py -3.12 -m venv server\\.venv && server\\.venv\\Scripts\\pip.exe install -r server\\requirements.txt"
+  },
+  "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "fflate": "^0.8.3",
+    "idb": "^8.0.3",
+    "matter-js": "^0.20.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.20.2",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^9.2.4",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
