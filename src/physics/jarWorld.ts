@@ -1,5 +1,6 @@
 import Matter from 'matter-js'
 import type { CutoutAsset } from '../lib/makeCutout'
+import { tankInnerBounds } from './tankGeometry'
 
 const { Engine, World, Bodies, Body, Composite, Mouse, MouseConstraint, Query, Vertices, Events } =
   Matter
@@ -22,48 +23,11 @@ export type JarWorld = {
   hitTest: (x: number, y: number) => Matter.Body | null
 }
 
-export type TankInner = {
-  left: number
-  right: number
-  top: number
-  bottom: number
-}
-
 const MAX_BODY_SIZE = 84
 const WALL_THICKNESS = 48
-
-type Pt = { x: number; y: number }
-
-/** Wide aquarium tank outline, clockwise from rim-left. */
-function jarOutline(width: number, height: number): Pt[] {
-  const left = width * 0.05
-  const right = width * 0.95
-  const top = height * 0.07
-  const lip = height * 0.12
-  const bottom = height * 0.9
-  const base = height * 0.94
-
-  return [
-    { x: left + width * 0.015, y: top },
-    { x: right - width * 0.015, y: top },
-    { x: right, y: lip },
-    { x: right - width * 0.008, y: bottom },
-    { x: right - width * 0.04, y: base },
-    { x: left + width * 0.04, y: base },
-    { x: left + width * 0.008, y: bottom },
-    { x: left, y: lip },
-  ]
-}
-
-/** Playable water volume — physics + visual clip share this. */
-function tankInnerBounds(width: number, height: number): TankInner {
-  return {
-    left: width * 0.09,
-    right: width * 0.91,
-    top: height * 0.16,
-    bottom: height * 0.84,
-  }
-}
+const GRAB = 0x0001
+const WALL = 0x0002
+const BUSY = 0x0004
 
 function buildJarWalls(width: number, height: number): Matter.Body[] {
   const inner = tankInnerBounds(width, height)
@@ -78,7 +42,7 @@ function buildJarWalls(width: number, height: number): Matter.Body[] {
     friction: 1,
     restitution: 0,
     slop: 0,
-    collisionFilter: { category: 0x0002, mask: 0xffffffff, group: 0 },
+    collisionFilter: { category: WALL, mask: 0xffffffff, group: 0 },
     render: { visible: false },
   }
 
@@ -86,7 +50,6 @@ function buildJarWalls(width: number, height: number): Matter.Body[] {
     Bodies.rectangle(inner.left - t / 2, midY, t, wallH, { ...wallOpts, label: 'wall-left' }),
     Bodies.rectangle(inner.right + t / 2, midY, t, wallH, { ...wallOpts, label: 'wall-right' }),
     Bodies.rectangle(midX, inner.bottom + t / 2, wallW, t, { ...wallOpts, label: 'wall-bottom' }),
-    // Soft ceiling lips (keep open mouth in the middle)
     Bodies.rectangle(inner.left + width * 0.12, inner.top + 4, width * 0.2, t * 0.55, {
       ...wallOpts,
       angle: 0.35,
@@ -115,11 +78,12 @@ function createSilhouetteBody(x: number, y: number, asset: CutoutAsset): Matter.
 
   const options: Matter.IChamferableBodyDefinition = {
     restitution: 0.05,
-    friction: 0.7,
+    friction: 0.85,
     frictionAir: 0.035,
     density: 0.0024,
+    slop: 0.01,
     label: 'cutout',
-    collisionFilter: { category: 0x0001, mask: 0xffffffff, group: 0 },
+    collisionFilter: { category: GRAB, mask: 0xffffffff, group: 0 },
     render: {
       sprite: {
         texture: asset.textureUrl,
@@ -160,14 +124,12 @@ export function createJarWorld(renderWidth: number, renderHeight: number): JarWo
   const engine = Engine.create({
     gravity: { x: 0, y: 1.05, scale: 0.001 },
   })
-  engine.positionIterations = 12
-  engine.velocityIterations = 10
+  engine.positionIterations = 16
+  engine.velocityIterations = 12
 
-  const walls = buildJarWalls(renderWidth, renderHeight)
-  World.add(engine.world, walls)
+  World.add(engine.world, buildJarWalls(renderWidth, renderHeight))
 
   const inner = tankInnerBounds(renderWidth, renderHeight)
-
   const cutouts: Matter.Body[] = []
   let dropIndex = 0
   let mouseConstraint: Matter.MouseConstraint | null = null
@@ -200,7 +162,18 @@ export function createJarWorld(renderWidth: number, renderHeight: number): JarWo
         Body.setAngularVelocity(body, body.angularVelocity * 0.5)
       }
 
-      // Safety: if somehow still outside, snap toward center
+      // Soft settle: if resting on floor with downward velocity, kill it
+      // so Matter slop doesn't keep nudging pieces into the sand.
+      if (b.max.y >= inner.bottom - 0.5 && body.velocity.y > 0) {
+        Body.setVelocity(body, { x: body.velocity.x * 0.92, y: 0 })
+        if (b.max.y > inner.bottom) {
+          Body.setPosition(body, {
+            x: body.position.x,
+            y: body.position.y - (b.max.y - inner.bottom),
+          })
+        }
+      }
+
       if (
         body.position.x < inner.left ||
         body.position.x > inner.right ||
@@ -230,33 +203,33 @@ export function createJarWorld(renderWidth: number, renderHeight: number): JarWo
 
     cutouts.push(body)
     World.add(engine.world, body)
-    // Immediate clamp in case spawn hull is large
     containBodies()
     return body
   }
 
   const shake = (dx: number, dy: number) => {
-    const forceScale = 0.00012
+    const forceScale = 0.00028
     for (const body of cutouts) {
       Body.applyForce(body, body.position, {
         x: dx * forceScale * body.mass,
-        y: Math.min(dy, 12) * forceScale * body.mass,
+        y: Math.min(dy, 36) * forceScale * body.mass,
       })
-      Body.setAngularVelocity(body, body.angularVelocity + dx * 0.0003)
+      Body.setAngularVelocity(body, body.angularVelocity + dx * 0.0007)
+      Body.setVelocity(body, {
+        x: body.velocity.x + dx * 0.08,
+        y: body.velocity.y + Math.min(dy, 36) * 0.06,
+      })
     }
   }
 
   const clearCutouts = () => {
-    for (const body of cutouts) {
-      World.remove(engine.world, body)
-    }
+    for (const body of cutouts) World.remove(engine.world, body)
     cutouts.length = 0
     dropIndex = 0
   }
 
   const hitTest = (x: number, y: number): Matter.Body | null => {
-    const hits = Query.point(cutouts, { x, y })
-    return hits[0] ?? null
+    return Query.point(cutouts, { x, y })[0] ?? null
   }
 
   const setMouseElement = (element: HTMLElement) => {
@@ -273,35 +246,24 @@ export function createJarWorld(renderWidth: number, renderHeight: number): JarWo
         damping: 0.12,
         render: { visible: false },
       },
-      collisionFilter: { category: 0x0001, mask: 0x0001, group: 0 },
+      collisionFilter: { category: GRAB, mask: GRAB, group: 0 },
     })
-
-    const GRAB = 0x0001
-    const BUSY = 0x0004
-
-    const restoreGrabFilters = () => {
-      for (const body of cutouts) {
-        body.collisionFilter.category = GRAB
-        body.collisionFilter.mask = 0xffffffff
-      }
-    }
 
     Events.on(mouseConstraint, 'startdrag', (event) => {
       const grabbed = (event as { body?: Matter.Body }).body
       if (!grabbed) return
       for (const body of cutouts) {
-        if (body.id === grabbed.id) {
-          body.collisionFilter.category = GRAB
-          body.collisionFilter.mask = 0xffffffff
-        } else {
-          body.collisionFilter.category = BUSY
-          body.collisionFilter.mask = 0xffffffff
-        }
+        const mine = body.id === grabbed.id
+        body.collisionFilter.category = mine ? GRAB : BUSY
+        body.collisionFilter.mask = 0xffffffff
       }
     })
 
     Events.on(mouseConstraint, 'enddrag', () => {
-      restoreGrabFilters()
+      for (const body of cutouts) {
+        body.collisionFilter.category = GRAB
+        body.collisionFilter.mask = 0xffffffff
+      }
     })
 
     World.add(engine.world, mouseConstraint)
@@ -332,4 +294,4 @@ export function createJarWorld(renderWidth: number, renderHeight: number): JarWo
   }
 }
 
-export { jarOutline, tankInnerBounds }
+export { jarOutline, tankInnerBounds } from './tankGeometry'
