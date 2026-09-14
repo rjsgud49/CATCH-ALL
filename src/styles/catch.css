@@ -456,7 +456,7 @@
   width: 72px;
   height: 72px;
   padding: 0.35rem;
-  border: 1px solid rgba(26, 42, 46, 0.12);
+  border: 1.5px solid rgba(26, 42, 46, 0.12);
   border-radius: 16px;
   background:
     linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%),
@@ -472,11 +472,17 @@
     0 0;
   cursor: pointer;
   scroll-snap-align: start;
-  transition: transform 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.collection-chip:hover {
+.collection-chip:hover,
+.collection-chip:focus-visible {
   transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .collection-chip img {
