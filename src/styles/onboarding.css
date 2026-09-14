@@ -1,0 +1,73 @@
+/* Onboarding */
+.onboard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(12, 28, 32, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.onboard-panel {
+  width: min(100%, 400px);
+  padding: 1.5rem 1.4rem 1.25rem;
+  border-radius: 22px;
+  background: linear-gradient(165deg, #eef6f4, #d5e4e1);
+  box-shadow: 0 24px 60px rgba(10, 40, 40, 0.35);
+  text-align: left;
+  animation: viewer-panel-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.onboard-kicker {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.onboard-title {
+  margin: 0.45rem 0 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+}
+
+.onboard-body {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.onboard-dots {
+  display: flex;
+  gap: 0.35rem;
+  margin: 1.1rem 0;
+}
+
+.onboard-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(26, 42, 46, 0.18);
+}
+
+.onboard-dot--on {
+  background: var(--accent);
+  width: 22px;
+  border-radius: 999px;
+}
+
+.onboard-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.onboard-cta {
+  padding: 0.7rem 1.25rem;
+  font-size: 0.95rem;
+}

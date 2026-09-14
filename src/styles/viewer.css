@@ -1,0 +1,119 @@
+/* Viewer */
+.viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(12, 28, 32, 0.55);
+  backdrop-filter: blur(8px);
+  animation: viewer-in 0.22s ease both;
+}
+
+@keyframes viewer-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.viewer-panel {
+  position: relative;
+  width: min(100%, 440px);
+  padding: 1.25rem 1.25rem 1rem;
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.55), transparent 50%),
+    linear-gradient(165deg, #eef6f4, #d5e4e1);
+  box-shadow: 0 24px 60px rgba(10, 40, 40, 0.35);
+  animation: viewer-panel-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes viewer-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.viewer-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  appearance: none;
+  border: none;
+  background: rgba(26, 42, 46, 0.08);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.viewer-stage {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  padding: 1.5rem 0.5rem 0.5rem;
+  background:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  border-radius: 14px;
+}
+
+.viewer-image {
+  max-width: 100%;
+  max-height: min(55dvh, 360px);
+  object-fit: contain;
+  filter: drop-shadow(0 12px 20px rgba(20, 50, 50, 0.28));
+}
+
+.viewer-caption {
+  margin: 0.85rem 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.viewer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.viewer-cta {
+  padding: 0.65rem 1.15rem;
+  font-size: 0.92rem;
+}
+
+@media (max-height: 720px) {
+  .hero--tank {
+    gap: 0.65rem 1rem;
+  }
+
+  .hero--tank:not(.hero--with-tray) {
+    grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  }
+
+  .hero--tank.hero--with-tray {
+    grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(160px, 220px);
+  }
+}

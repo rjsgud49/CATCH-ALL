@@ -1,0 +1,331 @@
+/* Library workspace */
+.page.library-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overflow-x: hidden;
+}
+
+.library {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 1rem clamp(1rem, 4vw, 2rem) 2.5rem;
+  text-align: left;
+}
+
+.library-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.library-title {
+  margin: 0;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.03em;
+}
+
+.library-sub {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.library-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.library-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lib-chip {
+  appearance: none;
+  border: 1.5px solid rgba(26, 42, 46, 0.15);
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lib-chip--on {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+  color: #f3faf8;
+}
+
+.library-search {
+  flex: 1 1 160px;
+  max-width: 240px;
+  border: 1.5px solid rgba(26, 42, 46, 0.15);
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.library-search:focus {
+  outline: 2px solid rgba(15, 110, 106, 0.35);
+  outline-offset: 1px;
+}
+
+.library-selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(26, 42, 46, 0.08);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.library-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.library-move select,
+.viewer-collection select {
+  appearance: none;
+  border: 1.5px solid rgba(26, 42, 46, 0.2);
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.library-empty {
+  display: grid;
+  place-items: center;
+  gap: 1rem;
+  min-height: 40vh;
+  text-align: center;
+  color: var(--muted);
+}
+
+.library-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.85rem;
+}
+
+.lib-tile {
+  position: relative;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(26, 42, 46, 0.1);
+  overflow: hidden;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.lib-tile--on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(15, 110, 106, 0.25);
+}
+
+.lib-tile-check {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(26, 42, 46, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  color: var(--accent-deep);
+  padding: 0;
+}
+
+.lib-tile-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.lib-tile-body img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.06) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.06) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.06) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.06) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  padding: 0.55rem;
+}
+
+.lib-tile-name {
+  display: block;
+  padding: 0.45rem 0.55rem 0.65rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-collection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  #root {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .page {
+    flex: none;
+    height: auto;
+    min-height: calc(100dvh - 3.6rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .page.library-page {
+    flex: none;
+    overflow: visible;
+  }
+
+  .hero--tank,
+  .hero--tank.hero--with-tray {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(42vh, 1fr) auto;
+    grid-template-areas:
+      'side'
+      'jar'
+      'tray';
+    height: auto;
+    min-height: calc(100dvh - 3.6rem);
+  }
+
+  .hero--tank .jar-stage {
+    min-height: 42vh;
+  }
+
+  .hero--tank .collection-rail {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+  }
+
+  .hero--tank .collection-chip {
+    width: 72px;
+    height: 72px;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+
+  .jar-stage {
+    width: min(100%, 100%);
+  }
+
+  .topbar-tagline {
+    display: none;
+  }
+
+  .library-head {
+    align-items: flex-start;
+  }
+
+  .library-search {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .toast-stack {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .topbar-nav {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .nav-link {
+    flex: 1;
+    text-align: center;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+
+

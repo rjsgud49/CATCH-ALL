@@ -1,0 +1,38 @@
+/* Toasts */
+.toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: min(calc(100vw - 2rem), 320px);
+}
+
+.toast {
+  appearance: none;
+  border: none;
+  text-align: left;
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(10, 30, 30, 0.18);
+  animation: brand-in 0.25s ease both;
+  background: #fff;
+  color: var(--ink);
+}
+
+.toast--ok {
+  border-left: 4px solid var(--accent);
+}
+
+.toast--warn {
+  border-left: 4px solid var(--warm);
+}
+
+.toast--error {
+  border-left: 4px solid var(--error);
+}
