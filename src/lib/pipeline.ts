@@ -2,9 +2,9 @@ import { removeBackground as removeBackgroundClient } from './removeBackground'
 import { removeBackgroundServer, checkServerHealth } from './api'
 import { makeCutout, type CutoutAsset } from './makeCutout'
 import { batchProgress, mapImglyProgress, snapshot, type ProgressSnapshot } from './progress'
+import { MAX_FILE_BYTES, MAX_FILES_PER_BATCH } from '../types/domain'
 
-export const MAX_FILES_PER_BATCH = 12
-export const MAX_FILE_BYTES = 15 * 1024 * 1024
+export { MAX_FILES_PER_BATCH, MAX_FILE_BYTES }
 /** Parallel registrations against the warm server. */
 const CONCURRENCY = 3
 

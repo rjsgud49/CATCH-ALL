@@ -1,5 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { Point } from './makeCutout'
+import type { CollectionRecord, CutoutMeta, Point } from '../types/domain'
+import { DEFAULT_COLLECTION_ID, DEFAULT_COLLECTION_NAME } from '../types/domain'
 import {
   createServerCollection,
   deleteServerCutout,
@@ -10,42 +11,22 @@ import {
   uploadCutoutToServer,
 } from './api'
 
+export { DEFAULT_COLLECTION_ID, DEFAULT_COLLECTION_NAME }
+export type { CollectionRecord, Point }
+
 const DB_NAME = 'catch-all'
 const DB_VERSION = 1
-export const DEFAULT_COLLECTION_ID = 'default'
-export const DEFAULT_COLLECTION_NAME = '모아둔 것'
 export const SESSION_IDS_KEY = 'catch-all-session-ids-v1'
 
-export type CollectionRecord = {
-  id: string
-  name: string
-  createdAt: number
-  updatedAt: number
-}
-
-export type CutoutRecord = {
-  id: string
-  name: string
-  createdAt: number
-  collectionId: string
+export type CutoutRecord = CutoutMeta & {
   previewBlob: Blob
   textureBlob: Blob
-  width: number
-  height: number
-  vertices: Point[]
 }
 
 /** Runtime cutout with object URLs for UI / physics. */
-export type StoredCutout = {
-  id: string
-  name: string
-  createdAt: number
-  collectionId: string
+export type StoredCutout = CutoutMeta & {
   previewUrl: string
   textureUrl: string
-  width: number
-  height: number
-  vertices: Point[]
 }
 
 interface CatchAllDB extends DBSchema {
@@ -94,6 +75,72 @@ async function ensureDefaultCollection() {
   }
 }
 
+function recordToStored(record: CutoutRecord): StoredCutout {
+  const previewUrl = URL.createObjectURL(record.previewBlob)
+  const textureUrl =
+    record.textureBlob === record.previewBlob
+      ? previewUrl
+      : URL.createObjectURL(record.textureBlob)
+  return {
+    id: record.id,
+    name: record.name,
+    createdAt: record.createdAt,
+    collectionId: record.collectionId,
+    previewUrl,
+    textureUrl,
+    width: record.width,
+    height: record.height,
+    vertices: record.vertices,
+  }
+}
+
+export function revokeStoredUrls(item: Pick<StoredCutout, 'previewUrl' | 'textureUrl'>) {
+  try {
+    if (item.previewUrl.startsWith('blob:')) URL.revokeObjectURL(item.previewUrl)
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (item.textureUrl.startsWith('blob:') && item.textureUrl !== item.previewUrl) {
+      URL.revokeObjectURL(item.textureUrl)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function touchCollection(collectionId: string) {
+  const db = await getDb()
+  const col = await db.get('collections', collectionId)
+  if (col) await db.put('collections', { ...col, updatedAt: Date.now() })
+}
+
+/** Single persist path for IndexedDB (+ optional server mirror). */
+async function persistCutoutRecord(
+  record: CutoutRecord,
+  syncRemote: boolean,
+): Promise<StoredCutout> {
+  await ensureDefaultCollection()
+  const db = await getDb()
+  await db.put('cutouts', record)
+  await touchCollection(record.collectionId)
+
+  if (syncRemote) {
+    await uploadCutoutToServer({
+      id: record.id,
+      name: record.name,
+      collectionId: record.collectionId,
+      createdAt: record.createdAt,
+      width: record.width,
+      height: record.height,
+      vertices: record.vertices,
+      blob: record.previewBlob,
+    })
+  }
+
+  return recordToStored(record)
+}
+
 export async function listCollections(): Promise<CollectionRecord[]> {
   await ensureDefaultCollection()
   const db = await getDb()
@@ -116,70 +163,6 @@ export async function createCollection(name: string): Promise<CollectionRecord> 
   return record
 }
 
-export async function renameCollection(id: string, name: string): Promise<void> {
-  const db = await getDb()
-  const existing = await db.get('collections', id)
-  if (!existing) return
-  await db.put('collections', {
-    ...existing,
-    name: name.trim() || existing.name,
-    updatedAt: Date.now(),
-  })
-}
-
-export async function deleteCollection(id: string): Promise<void> {
-  if (id === DEFAULT_COLLECTION_ID) return
-  const db = await getDb()
-  const cutouts = await db.getAllFromIndex('cutouts', 'by-collection', id)
-  const tx = db.transaction(['cutouts', 'collections'], 'readwrite')
-  for (const c of cutouts) {
-    await tx.objectStore('cutouts').put({
-      ...c,
-      collectionId: DEFAULT_COLLECTION_ID,
-    })
-  }
-  await tx.objectStore('collections').delete(id)
-  await tx.done
-  const def = await db.get('collections', DEFAULT_COLLECTION_ID)
-  if (def) {
-    await db.put('collections', { ...def, updatedAt: Date.now() })
-  }
-}
-
-function recordToStored(record: CutoutRecord): StoredCutout {
-  return {
-    id: record.id,
-    name: record.name,
-    createdAt: record.createdAt,
-    collectionId: record.collectionId,
-    previewUrl: URL.createObjectURL(record.previewBlob),
-    textureUrl: URL.createObjectURL(record.textureBlob),
-    width: record.width,
-    height: record.height,
-    vertices: record.vertices,
-  }
-}
-
-export function revokeStoredUrls(item: Pick<StoredCutout, 'previewUrl' | 'textureUrl'>) {
-  try {
-    if (item.previewUrl.startsWith('blob:')) URL.revokeObjectURL(item.previewUrl)
-  } catch {
-    /* ignore */
-  }
-  try {
-    if (item.textureUrl.startsWith('blob:') && item.textureUrl !== item.previewUrl) {
-      URL.revokeObjectURL(item.textureUrl)
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
-  const res = await fetch(dataUrl)
-  return res.blob()
-}
-
 export async function saveCutout(input: {
   id?: string
   name: string
@@ -190,67 +173,33 @@ export async function saveCutout(input: {
   height: number
   vertices: Point[]
   createdAt?: number
-  /** When false, skip server upload (used while pulling from server). */
   syncRemote?: boolean
 }): Promise<StoredCutout> {
-  await ensureDefaultCollection()
-  const db = await getDb()
   const id = input.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const createdAt = input.createdAt ?? Date.now()
   const collectionId = input.collectionId ?? DEFAULT_COLLECTION_ID
-  const textureBlob = await dataUrlToBlob(input.textureUrl)
+  const textureBlob = await (await fetch(input.textureUrl)).blob()
   const previewBlob =
     input.previewUrl && input.previewUrl !== input.textureUrl
-      ? await dataUrlToBlob(input.previewUrl)
+      ? await (await fetch(input.previewUrl)).blob()
       : textureBlob
 
-  const record: CutoutRecord = {
-    id,
-    name: input.name,
-    createdAt,
-    collectionId,
-    previewBlob,
-    textureBlob,
-    width: input.width,
-    height: input.height,
-    vertices: input.vertices,
-  }
-  await db.put('cutouts', record)
-
-  // Mirror key in localStorage for quick dual-store signal
-  try {
-    const raw = localStorage.getItem('catch-all-local-ids-v1')
-    const ids: string[] = raw ? (JSON.parse(raw) as string[]) : []
-    if (!ids.includes(id)) {
-      ids.push(id)
-      localStorage.setItem('catch-all-local-ids-v1', JSON.stringify(ids))
-    }
-  } catch {
-    /* ignore */
-  }
-
-  const col = await db.get('collections', collectionId)
-  if (col) {
-    await db.put('collections', { ...col, updatedAt: Date.now() })
-  }
-
-  if (input.syncRemote !== false) {
-    await uploadCutoutToServer({
+  return persistCutoutRecord(
+    {
       id,
-      name: record.name,
-      collectionId,
+      name: input.name,
       createdAt,
-      width: record.width,
-      height: record.height,
-      vertices: record.vertices,
-      blob: previewBlob,
-    })
-  }
-
-  return recordToStored(record)
+      collectionId,
+      previewBlob,
+      textureBlob,
+      width: input.width,
+      height: input.height,
+      vertices: input.vertices,
+    },
+    input.syncRemote !== false,
+  )
 }
 
-/** Persist blob directly (for server → local sync). */
 export async function saveCutoutFromBlobs(input: {
   id: string
   name: string
@@ -262,62 +211,31 @@ export async function saveCutoutFromBlobs(input: {
   blob: Blob
   syncRemote?: boolean
 }): Promise<StoredCutout> {
-  await ensureDefaultCollection()
-  const db = await getDb()
-  const record: CutoutRecord = {
-    id: input.id,
-    name: input.name,
-    createdAt: input.createdAt,
-    collectionId: input.collectionId,
-    previewBlob: input.blob,
-    textureBlob: input.blob,
-    width: input.width,
-    height: input.height,
-    vertices: input.vertices,
-  }
-  await db.put('cutouts', record)
-  try {
-    const raw = localStorage.getItem('catch-all-local-ids-v1')
-    const ids: string[] = raw ? (JSON.parse(raw) as string[]) : []
-    if (!ids.includes(input.id)) {
-      ids.push(input.id)
-      localStorage.setItem('catch-all-local-ids-v1', JSON.stringify(ids))
-    }
-  } catch {
-    /* ignore */
-  }
-  if (input.syncRemote) {
-    void uploadCutoutToServer({
+  return persistCutoutRecord(
+    {
       id: input.id,
       name: input.name,
-      collectionId: input.collectionId,
       createdAt: input.createdAt,
+      collectionId: input.collectionId,
+      previewBlob: input.blob,
+      textureBlob: input.blob,
       width: input.width,
       height: input.height,
       vertices: input.vertices,
-      blob: input.blob,
-    })
-  }
-  return recordToStored(record)
+    },
+    Boolean(input.syncRemote),
+  )
 }
 
 export async function listCutouts(collectionId?: string | 'all'): Promise<StoredCutout[]> {
   await ensureDefaultCollection()
   const db = await getDb()
-  let records: CutoutRecord[]
-  if (!collectionId || collectionId === 'all') {
-    records = await db.getAll('cutouts')
-  } else {
-    records = await db.getAllFromIndex('cutouts', 'by-collection', collectionId)
-  }
+  const records =
+    !collectionId || collectionId === 'all'
+      ? await db.getAll('cutouts')
+      : await db.getAllFromIndex('cutouts', 'by-collection', collectionId)
   records.sort((a, b) => b.createdAt - a.createdAt)
   return records.map(recordToStored)
-}
-
-export async function getCutout(id: string): Promise<StoredCutout | null> {
-  const db = await getDb()
-  const record = await db.get('cutouts', id)
-  return record ? recordToStored(record) : null
 }
 
 export async function getCutoutsByIds(ids: string[]): Promise<StoredCutout[]> {
@@ -340,42 +258,26 @@ export async function moveCutout(id: string, collectionId: string): Promise<void
   const record = await db.get('cutouts', id)
   if (!record) return
   await db.put('cutouts', { ...record, collectionId })
-  const col = await db.get('collections', collectionId)
-  if (col) await db.put('collections', { ...col, updatedAt: Date.now() })
+  await touchCollection(collectionId)
   void patchServerCutout(id, { collectionId })
 }
 
 export async function deleteCutouts(ids: string[]): Promise<void> {
   const db = await getDb()
   const tx = db.transaction('cutouts', 'readwrite')
-  for (const id of ids) {
-    await tx.store.delete(id)
-  }
+  for (const id of ids) await tx.store.delete(id)
   await tx.done
-  try {
-    const raw = localStorage.getItem('catch-all-local-ids-v1')
-    const prev: string[] = raw ? (JSON.parse(raw) as string[]) : []
-    const remove = new Set(ids)
-    localStorage.setItem(
-      'catch-all-local-ids-v1',
-      JSON.stringify(prev.filter((id) => !remove.has(id))),
-    )
-  } catch {
-    /* ignore */
-  }
   await Promise.all(ids.map((id) => deleteServerCutout(id)))
 }
 
-export async function getCutoutBlobs(ids: string[]): Promise<
-  { id: string; name: string; blob: Blob }[]
-> {
+export async function getCutoutBlobs(
+  ids: string[],
+): Promise<{ id: string; name: string; blob: Blob }[]> {
   const db = await getDb()
   const out: { id: string; name: string; blob: Blob }[] = []
   for (const id of ids) {
     const record = await db.get('cutouts', id)
-    if (record) {
-      out.push({ id: record.id, name: record.name, blob: record.previewBlob })
-    }
+    if (record) out.push({ id: record.id, name: record.name, blob: record.previewBlob })
   }
   return out
 }
@@ -407,19 +309,13 @@ export function clearSessionIds() {
   }
 }
 
-/**
- * Dual sync:
- * - Pull server cutouts missing locally into IndexedDB
- * - Push local-only cutouts up to the server
- */
+/** Pull missing from server, push local-only to server. */
 export async function syncLibraryDual(): Promise<{ pulled: number; pushed: number }> {
   await ensureDefaultCollection()
   const db = await getDb()
 
-  const remoteCols = await fetchServerCollections()
-  for (const col of remoteCols) {
-    const existing = await db.get('collections', col.id)
-    if (!existing) await db.put('collections', col)
+  for (const col of await fetchServerCollections()) {
+    if (!(await db.get('collections', col.id))) await db.put('collections', col)
   }
 
   const remote = await fetchServerCutouts()

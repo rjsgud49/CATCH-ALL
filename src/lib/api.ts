@@ -1,24 +1,11 @@
+import type { CollectionRecord, CutoutMeta } from '../types/domain'
+
 const API_BASE = ''
 
 export type ServerProgress = (ratio: number, detail: string) => void
 
-export type ServerCutoutMeta = {
-  id: string
-  name: string
-  createdAt: number
-  collectionId: string
-  width: number
-  height: number
-  vertices: { x: number; y: number }[]
-  updatedAt?: number
-}
-
-export type ServerCollection = {
-  id: string
-  name: string
-  createdAt: number
-  updatedAt: number
-}
+export type ServerCutoutMeta = CutoutMeta
+export type ServerCollection = CollectionRecord
 
 export async function checkServerHealth(): Promise<{
   ok: boolean
@@ -180,8 +167,4 @@ export async function createServerCollection(col: ServerCollection): Promise<boo
   } catch {
     return false
   }
-}
-
-export function serverCutoutImageUrl(id: string): string {
-  return `${API_BASE}/api/cutouts/${encodeURIComponent(id)}/image`
 }

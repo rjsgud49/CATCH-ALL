@@ -1,9 +1,11 @@
+import type { Point } from '../types/domain'
+
 const ALPHA_THRESHOLD = 24
 const MAX_TEXTURE = 320
 const PAD = 4
 const TARGET_VERTICES = 28
 
-export type Point = { x: number; y: number }
+export type { Point }
 
 export type CutoutAsset = {
   /** Transparent PNG cropped to subject (nukki). */
@@ -14,12 +16,6 @@ export type CutoutAsset = {
   height: number
   /** Contour in texture pixel space (clockwise). */
   vertices: Point[]
-}
-
-export type CutoutItem = CutoutAsset & {
-  id: string
-  name: string
-  createdAt: number
 }
 
 function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
