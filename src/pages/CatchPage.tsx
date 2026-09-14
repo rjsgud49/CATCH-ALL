@@ -5,6 +5,7 @@ import { Uploader } from '../components/Uploader'
 import { CutoutViewer } from '../components/CutoutViewer'
 import { ProgressPanel } from '../components/ProgressPanel'
 import { CollectionTray } from '../components/CollectionTray'
+import type { ToastPush } from '../components/ToastStack'
 import { filterValidImages, processFiles, warmupModel } from '../lib/pipeline'
 import type { ProgressSnapshot } from '../lib/progress'
 import type { CutoutAsset } from '../lib/makeCutout'
@@ -21,7 +22,7 @@ import {
 type Preview = { id?: string; src: string; name: string; collectionId?: string }
 
 type Props = {
-  push: (kind: 'ok' | 'warn' | 'error', message: string) => void
+  push: ToastPush
   onLibraryChange: () => void
   pendingDropIds?: string[]
   onPendingDropConsumed?: () => void

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 
+export type ToastTone = 'ok' | 'warn' | 'error'
+
 export type ToastItem = {
   id: string
-  tone: 'ok' | 'warn' | 'error'
+  tone: ToastTone
   message: string
 }
+
+export type ToastPush = (tone: ToastTone, message: string) => void
 
 type Props = {
   toasts: ToastItem[]
@@ -41,7 +45,7 @@ function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) =
 export function useToasts() {
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
-  const push = useCallback((tone: ToastItem['tone'], message: string) => {
+  const push: ToastPush = useCallback((tone, message) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     setToasts((prev) => [...prev.slice(-4), { id, tone, message }])
   }, [])

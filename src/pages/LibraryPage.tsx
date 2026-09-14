@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CutoutViewer } from '../components/CutoutViewer'
+import type { ToastPush } from '../components/ToastStack'
 import { downloadCutoutsZip } from '../lib/exportZip'
 import {
   createCollection,
@@ -15,7 +16,7 @@ import {
 } from '../lib/store'
 
 type Props = {
-  push: (kind: 'ok' | 'warn' | 'error', message: string) => void
+  push: ToastPush
   onLibraryChange: () => void
   onDropToCatch: (ids: string[]) => void
   refreshToken: number

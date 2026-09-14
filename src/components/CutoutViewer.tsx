@@ -8,7 +8,6 @@ type Props = {
   collectionId?: string
   collections?: CollectionRecord[]
   onClose: () => void
-  onDownload?: () => void
   onCollectionChange?: () => void
 }
 
@@ -19,7 +18,6 @@ export function CutoutViewer({
   collectionId,
   collections: collectionsProp,
   onClose,
-  onDownload,
   onCollectionChange,
 }: Props) {
   const [saving, setSaving] = useState(false)
@@ -58,10 +56,6 @@ export function CutoutViewer({
   }, [onClose])
 
   const download = async () => {
-    if (onDownload) {
-      onDownload()
-      return
-    }
     setSaving(true)
     try {
       const a = document.createElement('a')
