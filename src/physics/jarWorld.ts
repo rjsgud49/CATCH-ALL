@@ -192,14 +192,25 @@ export function createJarWorld(renderWidth: number, renderHeight: number): JarWo
   Events.on(engine, 'afterUpdate', containBodies)
 
   const addCutout = (asset: CutoutAsset): Matter.Body => {
-    const span = Math.max(40, inner.right - inner.left - 40)
-    const x = inner.left + 20 + ((dropIndex * 53) % span)
-    const y = inner.top + 28
+    const margin = 28
+    const span = Math.max(48, inner.right - inner.left - margin * 2)
+    // Golden-ratio steps + jitter so consecutive drops land across the tank,
+    // not stacked in the same column.
+    const golden = 0.6180339887
+    const slot = ((dropIndex * golden) % 1) * span
+    const jitter = (Math.random() - 0.5) * Math.min(36, span * 0.18)
+    const x = inner.left + margin + ((slot + jitter + span) % span)
+    const y = inner.top + 18 + (dropIndex % 5) * 6 + Math.random() * 10
     dropIndex += 1
 
     const body = createSilhouetteBody(x, y, asset)
-    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.04)
-    Body.setVelocity(body, { x: (Math.random() - 0.5) * 0.5, y: 1.4 })
+    // Drift outward from spawn so pieces fan out while falling.
+    const towardEdge = (x - (inner.left + inner.right) / 2) / (span / 2)
+    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.08)
+    Body.setVelocity(body, {
+      x: towardEdge * 1.2 + (Math.random() - 0.5) * 2.4,
+      y: 0.8 + Math.random() * 1.2,
+    })
 
     cutouts.push(body)
     World.add(engine.world, body)
